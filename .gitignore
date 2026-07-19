@@ -13,8 +13,6 @@ build/
 # Temp files
 temp/
 *.mp4
-*.mp3
-*.wav
 
 # Output
 output/
