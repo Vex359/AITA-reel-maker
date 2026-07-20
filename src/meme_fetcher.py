@@ -184,11 +184,11 @@ def copy_meme_to_temp(meme_path: str, index: int) -> Optional[str]:
         dest_path = os.path.join(TEMP_DIR, f"meme_{index:03d}{ext}")
         
         shutil.copy2(meme_path, dest_path)
-        print(f"Copied meme: {os.path.basename(meme_path)} -> {dest_path}")
+        print(f"Copied meme: {index:03d} -> {dest_path}")
         return dest_path
         
     except Exception as e:
-        print(f"Error copying meme {meme_path}: {e}")
+        print(f"Error copying meme {index}: {e}")
         return None
 
 

@@ -111,9 +111,7 @@ mutation CreatePost {
         url: "%s"
       }
     }],
-    tagContent: {
-      tags: ["reel", "minecraft", "parkour"]
-    }
+    metadata: { instagram: { type: reel, shouldShareToFeed: true } }
   }) {
     ... on PostActionSuccess {
       post {

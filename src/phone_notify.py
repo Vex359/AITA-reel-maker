@@ -21,7 +21,7 @@ def send_phone_notification(title: str, message: str, priority: str = "high"):
 
 def send_reel_ready_notification(reel_count: int, output_dir: str):
     send_phone_notification(
-        title=f"🎮 {reel_count} Reels Ready!",
+        title=str(reel_count) + " Reels Ready!",
         message=f"Batch complete! {reel_count} reels generated.\n\n"
                 f"Next step: Run the Buffer scheduler.\n"
                 f"Output: {output_dir}\n\n"
@@ -32,7 +32,7 @@ def send_reel_ready_notification(reel_count: int, output_dir: str):
 
 def send_reminder_notification(days_since: int = 5):
     send_phone_notification(
-        title="⏰ Time to Generate Reels!",
+        title="Time to Generate Reels!",
         message=f"It's been {days_since} days since your last batch.\n\n"
                 f"Your Instagram queue is running low!\n"
                 f"Run the BAT file to generate 10 more reels.",
