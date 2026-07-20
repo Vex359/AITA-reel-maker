@@ -138,6 +138,22 @@ def save_reel_manifest(reels: List[Dict], manifest_path: str):
     print(f"\n  Manifest saved: {manifest_path}")
 
 
+def cleanup_reels(reels: List[Dict]):
+    deleted = 0
+    for r in reels:
+        path = r.get("video_path")
+        if path and os.path.exists(path):
+            try:
+                os.remove(path)
+                deleted += 1
+            except Exception:
+                pass
+    manifest = os.path.join(OUTPUT_DIR, "reel_manifest.json")
+    if os.path.exists(manifest):
+        os.remove(manifest)
+    print(f"  Cleaned up {deleted} video files from disk")
+
+
 def run_full_cycle():
     start_time = datetime.now()
     
@@ -146,7 +162,7 @@ def run_full_cycle():
     print("🎮" * 30)
     print(f"\n  Started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     
-    print("\n[STEP 1/3] Generating reels...")
+    print("\n[STEP 1/4] Generating reels...")
     reels = generate_batch(BATCH_SIZE)
     
     if not reels:
@@ -156,19 +172,23 @@ def run_full_cycle():
     manifest_path = os.path.join(OUTPUT_DIR, "reel_manifest.json")
     save_reel_manifest(reels, manifest_path)
     
-    print("\n[STEP 2/3] Scheduling to Buffer...")
+    print("\n[STEP 2/4] Scheduling to Buffer...")
     schedule_success = schedule_to_buffer(reels)
     
-    print("\n[STEP 3/3] Sending notifications...")
+    print("\n[STEP 3/4] Cleaning up local files...")
+    if schedule_success:
+        cleanup_reels(reels)
+    else:
+        print("  Skipped — some reels failed to schedule, keeping files")
     
+    print("\n[STEP 4/4] Sending notifications...")
     send_reel_ready_notification(
         reel_count=len(reels),
         output_dir=OUTPUT_DIR,
     )
     
     reminder_date = datetime.now() + timedelta(days=5)
-    print(f"\n  📱 Reminder scheduled for: {reminder_date.strftime('%Y-%m-%d %H:%M')}")
-    print(f"  Run this BAT file again on that date!")
+    print(f"\n  📱 Reminder: run this BAT file again on {reminder_date.strftime('%Y-%m-%d')}")
     
     duration = datetime.now() - start_time
     minutes = duration.total_seconds() / 60
@@ -178,6 +198,7 @@ def run_full_cycle():
     print(f"  Duration: {minutes:.1f} minutes")
     print(f"  Reels generated: {len(reels)}")
     print(f"  Scheduled to Buffer: {'✓' if schedule_success else '✗'}")
+    print(f"  Local files deleted: {'✓' if schedule_success else '✗'}")
     print(f"  Next run: {reminder_date.strftime('%Y-%m-%d')}")
     print("=" * 60)
     
