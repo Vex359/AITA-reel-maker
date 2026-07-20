@@ -98,8 +98,21 @@ def get_instagram_channel() -> Optional[dict]:
     return None
 
 
+def _escape_graphql_string(s: str) -> str:
+    """Escape a string for safe embedding in a GraphQL query string literal."""
+    s = s.replace("\\", "\\\\")   # backslashes first
+    s = s.replace('"', '\\"')     # double quotes
+    s = s.replace("\n", "\\n")    # newlines
+    s = s.replace("\r", "\\r")    # carriage returns
+    s = s.replace("\t", "\\t")    # tabs
+    return s
+
+
 def create_post(channel_id: str, text: str, video_url: str, scheduled_at: datetime) -> dict:
     due_at = scheduled_at.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    
+    safe_text = _escape_graphql_string(text)
+    safe_url = _escape_graphql_string(video_url)
     
     query = """
 mutation CreatePost {
@@ -127,7 +140,7 @@ mutation CreatePost {
     }
   }
 }
-""" % (text.replace('"', '\\"'), channel_id, due_at, video_url)
+""" % (safe_text, channel_id, due_at, safe_url)
     
     result = graphql_query(query)
     
