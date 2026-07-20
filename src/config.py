@@ -2,14 +2,12 @@
 
 import os
 
-# Video settings
 VIDEO_WIDTH = 1080
 VIDEO_HEIGHT = 1920
 VIDEO_FPS = 30
 REEL_DURATION = 20
-BACKGROUND_SPEED = 1.5  # seconds
+BACKGROUND_SPEED = 1.5
 
-# Reddit settings
 REDDIT_TOP_URL = "https://old.reddit.com/r/AmItheAsshole/top/.json"
 REDDIT_PARAMS = {"t": "day", "limit": 10}
 REDDIT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -17,6 +15,7 @@ REDDIT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.3
 OPENROUTER_API_KEY = "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"
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODEL = "tencent/hy3:free"
+OPENROUTER_ABSURD_MODEL = "google/gemma-4-26b-a4b-it:free"
 
 SCRIPT_PROMPT = """Convert this Reddit story into a narration script for a short video.
 Keep it engaging, dramatic, and concise. Maximum 80 words.
@@ -36,6 +35,24 @@ Sound like you're gossiping to your bestie.
 Return ONLY the script text, nothing else.
 
 Story: {story}"""
+
+ABSURD_SCRIPT_PROMPT = """Generate the most DARK, CONTROVERSIAL, and UNHINGED narration script for a short video.
+Maximum 80 words. Make it shocking, morally gray, and absolutely unhinged.
+The story should push boundaries — think worst roommate stories, revenge plots, chaotic life choices, morally questionable decisions.
+
+CRITICAL RULES:
+- Use words like "freak" instead of "fuck", "frick" instead of "damn", "heck" instead of "hell"
+- Say "what the freak" instead of "what the fuck", "oh my gosh" instead of "oh my god"
+- Be DARK: talk about revenge, betrayal, toxic relationships, unhinged revenge plots, chaotic drama
+- Be CONTROVERSIAL: morally gray decisions, "am I the villain" energy, dark humor
+- Be UNHINGED: worst behavior, no regrets energy, main character syndrome, toxic but slay
+- Use Gen Z slang: bruh, bro, no cap, lowkey, highkey, deadass, on god, bestie, it's giving, ate, rent free, ick, the tea, slay, vibe check
+- NEVER use abbreviations (SUS, AF, FR FR, etc) — spell out full words
+- Write as ONE continuous sentence. NO newlines, NO paragraphs. Just one flowing block of text.
+- MANDATORY: Include at least 4 COMMAS for pacing.
+- Start with a hook that makes people want to keep watching
+- Example: "Bestie, I deadass moved in with my ex just to steal his dog, and honestly, no regrets, the dog is mine now, he can cry about it."
+- Return ONLY the script text, nothing else."""
 
 KEYWORD_PROMPT = """Extract 5-8 keywords from this story that would help find relevant memes.
 Return ONLY comma-separated keywords, nothing else.
@@ -72,16 +89,14 @@ Big moment.gif,3
 NO explanations, just the comma-separated values."""
 
 MEME_DISPLAY_DURATION = 3.0
-MEME_POSITION_Y = 300  # Just above subtitle (center is 960)
+MEME_POSITION_Y = 300
 MEME_MAX_HEIGHT = 600
 
-# TTS settings (edge-tts - free, no auth)
-TTS_VOICE = "en-US-GuyNeural"  # Cringey high-pitched male Gen Z voice
-TTS_RATE = "+13%"  # Smooth speed
-TTS_PITCH = "+50Hz"  # High pitch for maximum cringe
+TTS_VOICE = "en-US-GuyNeural"
+TTS_RATE = "+13%"
+TTS_PITCH = "+50Hz"
 TTS_VOLUME = "+0%"
 
-# Subtitle settings
 SUBTITLE_FONT_SIZE = 70
 SUBTITLE_FONT = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts", "impact.ttf")
 SUBTITLE_COLOR = "white"
@@ -117,7 +132,17 @@ record scratch.mp3,18.5
 
 NO explanations, just the comma-separated values. Keep it minimal - 3 to 5 SFX max."""
 
-# File paths
+BUFFER_ACCESS_TOKEN = "88TSyQtAaT4IPrMaK4AmyUqq73kmiH2A9H34B5gh0xW"
+POSTS_PER_DAY = 2
+BATCH_SIZE = 10
+
+CLOUDINARY_CLOUD_NAME = ""
+CLOUDINARY_API_KEY = ""
+CLOUDINARY_API_SECRET = ""
+
+NTFY_SERVER = "https://ntfy.sh"
+NTFY_TOPIC = "my-minecraft-reels"
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BACKGROUND_VIDEO = os.path.join(BASE_DIR, "videoplayback.mp4")
 SOUND_EFFECTS_DIR = os.path.join(BASE_DIR, "sound effects")
@@ -125,7 +150,7 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 TEMP_DIR = os.path.join(BASE_DIR, "temp")
 FONT_DIR = os.path.join(BASE_DIR, "fonts")
 MEMES_DIR = os.path.join(BASE_DIR, "Memes")
+CAPTIONS_FILE = os.path.join(OUTPUT_DIR, "captions.json")
 
-# Ensure directories exist
 for directory in [SOUND_EFFECTS_DIR, OUTPUT_DIR, TEMP_DIR, MEMES_DIR]:
     os.makedirs(directory, exist_ok=True)

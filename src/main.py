@@ -6,7 +6,7 @@ from typing import Optional
 
 from .config import TEMP_DIR, OUTPUT_DIR
 from .reddit_scraper import fetch_aita_story, truncate_story
-from .keyword_extractor import generate_script, extract_keywords
+from .keyword_extractor import generate_script, extract_keywords, generate_absurd_script
 from .meme_fetcher import fetch_and_download_memes, select_sfx_with_llm
 from .tts_generator import generate_tts
 from .video_compositor import prepare_background, compose_reel
@@ -111,6 +111,42 @@ def generate_reel_with_story(story_text: str, title: str = "Custom Story") -> st
     story = {"title": title, "body": story_text, "url": "custom"}
     
     script = generate_script(story_text)
+    keywords = extract_keywords(script)
+    narration_path, subtitles = generate_tts(script)
+    
+    memes = fetch_and_download_memes(keywords, count=20, script=script, subtitles=subtitles)
+    
+    from .tts_generator import get_audio_duration
+    narration_duration = get_audio_duration(narration_path)
+    sfx_data = select_sfx_with_llm(script, subtitles, duration=narration_duration)
+    
+    thumbnail_path, hook_text = generate_thumbnail(script, TEMP_DIR)
+    
+    background = prepare_background()
+    
+    output_path = compose_reel(
+        background=background,
+        memes=memes,
+        subtitles=subtitles,
+        narration_path=narration_path,
+        sfx_data=sfx_data,
+        title=hook_text,
+        thumbnail_path=thumbnail_path,
+    )
+    
+    cleanup_temp()
+    return output_path
+
+
+def generate_absurd_reel(topic: str = "", title: str = "AI Absurd") -> str:
+    """Generate a reel with an absurd AI-generated script."""
+    print("=" * 60)
+    print("MINECRAFT REEL - AI ABSURD MODE")
+    print("=" * 60)
+    
+    script = generate_absurd_script(topic)
+    print(f"  Script: {script[:80]}...")
+    
     keywords = extract_keywords(script)
     narration_path, subtitles = generate_tts(script)
     

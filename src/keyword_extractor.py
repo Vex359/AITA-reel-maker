@@ -7,13 +7,18 @@ from .config import (
     OPENROUTER_API_URL,
     OPENROUTER_API_KEY,
     OPENROUTER_MODEL,
+    OPENROUTER_ABSURD_MODEL,
     SCRIPT_PROMPT,
+    ABSURD_SCRIPT_PROMPT,
     KEYWORD_PROMPT,
 )
 
 
-def call_llm(prompt: str) -> str:
+def call_llm(prompt: str, model: str = None) -> str:
     """Call OpenRouter API with a prompt."""
+    if model is None:
+        model = OPENROUTER_MODEL
+    
     try:
         response = requests.post(
             OPENROUTER_API_URL,
@@ -22,7 +27,7 @@ def call_llm(prompt: str) -> str:
                 "Content-Type": "application/json",
             },
             json={
-                "model": OPENROUTER_MODEL,
+                "model": model,
                 "messages": [{"role": "user", "content": prompt}],
             },
             timeout=60,
@@ -66,3 +71,20 @@ def extract_keywords(story_text: str) -> List[str]:
         keywords = ["funny", "drama", "relationship", "family", "conflict"]
     
     return keywords
+
+
+def generate_absurd_script(topic: str = "") -> str:
+    """Generate an absurd, cringey AI script."""
+    if topic:
+        prompt = f"Write about this topic: {topic}\n\n{ABSURD_SCRIPT_PROMPT}"
+    else:
+        prompt = ABSURD_SCRIPT_PROMPT
+    
+    script = call_llm(prompt, model=OPENROUTER_ABSURD_MODEL)
+    
+    if not script:
+        script = "Bestie, I deadass saw my neighbor wrestling with a raccoon yesterday, and no cap, the raccoon was winning, I was literally shaking, what the freak is happening in this neighborhood."
+    
+    script = script.strip().strip('"').strip("'")
+    print(f"Generated absurd script ({len(script.split())} words)")
+    return script

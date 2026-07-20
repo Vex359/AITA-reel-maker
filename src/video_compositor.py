@@ -132,7 +132,7 @@ def create_subtitle_overlay(subtitle_entries: List[Dict]) -> CompositeVideoClip:
 
 
 def mix_sound_effects(sfx_data: List[tuple], duration: float) -> Optional[AudioFileClip]:
-    """Mix sound effects into a single audio track at 60% volume."""
+    """Mix sound effects into a single audio track at 25% volume."""
     if not sfx_data:
         return None
     
@@ -148,7 +148,7 @@ def mix_sound_effects(sfx_data: List[tuple], duration: float) -> Optional[AudioF
                 continue
             
             sfx = AudioFileClip(sfx_path)
-            sfx = sfx.with_volume_scaled(0.4)
+            sfx = sfx.with_volume_scaled(0.25)
             
             if timestamp + sfx.duration > duration:
                 sfx = sfx.subclipped(0, duration - timestamp)

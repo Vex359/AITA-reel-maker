@@ -153,7 +153,7 @@ def create_thumbnail(hook_text: str, meme_path: str = None) -> Image.Image:
         y = y_start + i * (THUMBNAIL_FONTSIZE + 20)
         
         draw.text((x + 4, y + 4), line, fill=(0, 0, 0), font=font)
-        draw.text((x, y), line, fill=(255, 0, 0), font=font)
+        draw.text((x, y), line, fill=(255, 255, 0), font=font)
     
     return img.convert("RGB")
 

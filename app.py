@@ -6,37 +6,66 @@ from datetime import datetime
 st.set_page_config(page_title="Minecraft Reel Generator", layout="centered")
 
 st.title("Minecraft Reel Generator")
-st.markdown("Generate Minecraft parkour reels with Reddit stories, memes, and AI voice.")
+st.markdown("Generate Minecraft parkour reels with Reddit stories, AI scripts, memes, and voice.")
 
 output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
 
 if "generating" not in st.session_state:
     st.session_state.generating = False
 
-st.subheader("Paste Reddit Post")
-title_input = st.text_input("Post Title", placeholder="e.g. AITA for refusing to give up my plane seat?")
-body_input = st.text_area("Post Body", height=200, placeholder="Paste the full Reddit post here...")
+mode = st.radio(
+    "Select Mode",
+    ["Reddit Post", "AI Generate"],
+    horizontal=True,
+)
 
-col1, col2 = st.columns([1, 1])
+if mode == "Reddit Post":
+    st.subheader("Paste Reddit Post")
+    title_input = st.text_input("Post Title", placeholder="e.g. AITA for refusing to give up my plane seat?")
+    body_input = st.text_area("Post Body", height=200, placeholder="Paste the full Reddit post here...")
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        generate_disabled = st.session_state.generating or not body_input.strip()
+        if st.button("Generate Reel", type="primary", disabled=generate_disabled):
+            st.session_state.generating = True
+            st.session_state.mode = "reddit"
+            st.session_state.custom_title = title_input.strip() if title_input.strip() else "Reddit Post"
+            st.session_state.custom_body = body_input.strip()
+            st.rerun()
+    
+    with col2:
+        if st.button("Refresh List"):
+            st.rerun()
 
-with col1:
-    generate_disabled = st.session_state.generating or not body_input.strip()
-    if st.button("Generate Reel", type="primary", disabled=generate_disabled):
-        st.session_state.generating = True
-        st.session_state.custom_title = title_input.strip() if title_input.strip() else "Reddit Post"
-        st.session_state.custom_body = body_input.strip()
-        st.rerun()
-
-with col2:
-    if st.button("Refresh List"):
-        st.rerun()
+else:
+    st.subheader("AI Generate")
+    topic_input = st.text_input(
+        "Topic (optional)",
+        placeholder="e.g. my weird obsession with ducks, dating a mannequin, etc.",
+    )
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        if st.button("Generate Absurd Reel", type="primary", disabled=st.session_state.generating):
+            st.session_state.generating = True
+            st.session_state.mode = "ai"
+            st.session_state.custom_title = topic_input.strip() if topic_input.strip() else "AI Absurd"
+            st.session_state.custom_topic = topic_input.strip()
+            st.rerun()
+    
+    with col2:
+        if st.button("Refresh List"):
+            st.rerun()
 
 if st.session_state.generating:
     st.info("Generating reel... This may take 1-2 minutes.")
     progress = st.progress(0, text="Starting...")
     
     try:
-        from src.main import generate_reel_with_story
+        from src.main import generate_reel_with_story, generate_absurd_reel
         
         progress.progress(10, text="Generating script...")
         progress.progress(25, text="Extracting keywords...")
@@ -44,10 +73,16 @@ if st.session_state.generating:
         progress.progress(55, text="Generating voice...")
         progress.progress(70, text="Composing video...")
         
-        output_path = generate_reel_with_story(
-            story_text=st.session_state.custom_body,
-            title=st.session_state.custom_title,
-        )
+        if st.session_state.mode == "ai":
+            output_path = generate_absurd_reel(
+                topic=st.session_state.custom_topic,
+                title=st.session_state.custom_title,
+            )
+        else:
+            output_path = generate_reel_with_story(
+                story_text=st.session_state.custom_body,
+                title=st.session_state.custom_title,
+            )
         
         progress.progress(100, text="Done!")
         st.session_state.generating = False
