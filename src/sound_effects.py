@@ -3,6 +3,7 @@
 import os
 import json
 import random
+import time
 import requests
 from typing import List, Dict, Optional
 
@@ -10,7 +11,7 @@ from .config import (
     SOUND_EFFECTS_DIR,
     REEL_DURATION,
     OPENROUTER_API_URL,
-    OPENROUTER_API_KEY,
+    OPENROUTER_API_KEYS,
     OPENROUTER_MODEL,
 )
 
@@ -71,49 +72,59 @@ RULES:
 Return ONLY this JSON array (no other text):
 [{{"word": "exact word from story", "sfx": "sound effect name"}}]"""
 
-    try:
-        response = requests.post(
-            OPENROUTER_API_URL,
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": OPENROUTER_MODEL,
-                "messages": [{"role": "user", "content": prompt}],
-            },
-            timeout=60,
-        )
-        response.raise_for_status()
+    _sfx2_key_idx = getattr(_suggest_sfx_placements, '_key_idx', 0)
+    for _attempt in range(len(OPENROUTER_API_KEYS)):
+        key = OPENROUTER_API_KEYS[_sfx2_key_idx % len(OPENROUTER_API_KEYS)]
+        try:
+            response = requests.post(
+                OPENROUTER_API_URL,
+                headers={
+                    "Authorization": f"Bearer {key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": OPENROUTER_MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+                timeout=60,
+            )
+            if response.status_code == 429:
+                _sfx2_key_idx += 1
+                time.sleep(2)
+                continue
+            response.raise_for_status()
+            _suggest_sfx_placements._key_idx = _sfx2_key_idx + 1
         
-        result = response.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+            result = response.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip()
         
-        if "[" in result and "]" in result:
-            start = result.index("[")
-            end = result.rindex("]") + 1
-            json_str = result[start:end]
-            placements = json.loads(json_str)
-            
-            valid = []
-            for p in placements:
-                if "word" in p and "sfx" in p:
-                    sfx_name = p["sfx"].lower().strip()
-                    matched_sfx = None
-                    for available in sfx_names:
-                        if sfx_name in available or available in sfx_name:
-                            matched_sfx = available
-                            break
-                    
-                    if matched_sfx:
-                        valid.append({
-                            "word": p["word"],
-                            "sfx_name": matched_sfx,
-                        })
-            
-            return valid[:MAX_SFX_PER_REEL]
+            if "[" in result and "]" in result:
+                start = result.index("[")
+                end = result.rindex("]") + 1
+                json_str = result[start:end]
+                placements = json.loads(json_str)
+                
+                valid = []
+                for p in placements:
+                    if "word" in p and "sfx" in p:
+                        sfx_name = p["sfx"].lower().strip()
+                        matched_sfx = None
+                        for available in sfx_names:
+                            if sfx_name in available or available in sfx_name:
+                                matched_sfx = available
+                                break
+                        
+                        if matched_sfx:
+                            valid.append({
+                                "word": p["word"],
+                                "sfx_name": matched_sfx,
+                            })
+                
+                return valid[:MAX_SFX_PER_REEL]
         
-    except (requests.RequestException, json.JSONDecodeError, ValueError):
-        pass
+        except (requests.RequestException, json.JSONDecodeError, ValueError):
+            _sfx2_key_idx += 1
+            time.sleep(2)
+            continue
     
     return []
 

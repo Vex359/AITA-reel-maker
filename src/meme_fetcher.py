@@ -3,6 +3,7 @@
 import os
 import random
 import shutil
+import time
 import requests
 from typing import List, Optional
 
@@ -11,7 +12,7 @@ from .config import (
     TEMP_DIR,
     MEME_SELECT_PROMPT,
     SFX_SELECT_PROMPT,
-    OPENROUTER_API_KEY,
+    OPENROUTER_API_KEYS,
     OPENROUTER_API_URL,
     OPENROUTER_MODEL,
     SOUND_EFFECTS_DIR,
@@ -226,65 +227,77 @@ def select_memes_with_llm(script: str, candidate_memes: List[str], count: int = 
         duration=int(duration)
     )
     
-    try:
-        response = requests.post(
-            OPENROUTER_API_URL,
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": OPENROUTER_MODEL,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 400,
-            },
-            timeout=15,
-        )
-        response.raise_for_status()
-        
-        content = response.json()["choices"][0]["message"]["content"].strip()
-        print(f"LLM meme selection:\n{content[:200]}...")
-        
-        # Parse the new format: filename,duration
-        selected_memes = []
-        for line in content.split("\n"):
-            line = line.strip()
-            if not line or "," not in line:
+    _meme_key_idx = getattr(select_memes_with_llm, '_key_idx', 0)
+    for _attempt in range(len(OPENROUTER_API_KEYS)):
+        key = OPENROUTER_API_KEYS[_meme_key_idx % len(OPENROUTER_API_KEYS)]
+        try:
+            response = requests.post(
+                OPENROUTER_API_URL,
+                headers={
+                    "Authorization": f"Bearer {key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": OPENROUTER_MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 400,
+                },
+                timeout=15,
+            )
+            if response.status_code == 429:
+                _meme_key_idx += 1
+                time.sleep(2)
                 continue
+            response.raise_for_status()
+            select_memes_with_llm._key_idx = _meme_key_idx + 1
+        
+            content = response.json()["choices"][0]["message"]["content"].strip()
+            print(f"LLM meme selection:\n{content[:200]}...")
             
-            parts = line.split(",", 1)
-            filename = parts[0].strip()
-            try:
-                meme_duration = float(parts[1].strip())
-                meme_duration = max(1.0, min(3.0, meme_duration))  # Clamp to 1-3 seconds
-            except (ValueError, IndexError):
-                meme_duration = 2.0  # Default to 2 seconds
-            
-            # Find matching meme path
-            for meme_path in candidate_memes:
-                if os.path.basename(meme_path).lower() == filename.lower():
-                    selected_memes.append((meme_path, meme_duration))
+            # Parse the new format: filename,duration
+            selected_memes = []
+            for line in content.split("\n"):
+                line = line.strip()
+                if not line or "," not in line:
+                    continue
+                
+                parts = line.split(",", 1)
+                filename = parts[0].strip()
+                try:
+                    meme_duration = float(parts[1].strip())
+                    meme_duration = max(1.0, min(3.0, meme_duration))  # Clamp to 1-3 seconds
+                except (ValueError, IndexError):
+                    meme_duration = 2.0  # Default to 2 seconds
+                
+                # Find matching meme path
+                for meme_path in candidate_memes:
+                    if os.path.basename(meme_path).lower() == filename.lower():
+                        selected_memes.append((meme_path, meme_duration))
+                        break
+                
+                if len(selected_memes) >= count:
                     break
             
-            if len(selected_memes) >= count:
-                break
+            # If LLM didn't return enough, fill with random
+            if len(selected_memes) < count:
+                used_paths = [m[0] for m in selected_memes]
+                remaining = [m for m in candidate_memes if m not in used_paths]
+                extra_count = min(count - len(selected_memes), len(remaining))
+                if extra_count > 0:
+                    extra = random.sample(remaining, extra_count)
+                    for meme_path in extra:
+                        selected_memes.append((meme_path, 2.0))  # Default 2 seconds
+            
+            return selected_memes[:count]
         
-        # If LLM didn't return enough, fill with random
-        if len(selected_memes) < count:
-            used_paths = [m[0] for m in selected_memes]
-            remaining = [m for m in candidate_memes if m not in used_paths]
-            extra_count = min(count - len(selected_memes), len(remaining))
-            if extra_count > 0:
-                extra = random.sample(remaining, extra_count)
-                for meme_path in extra:
-                    selected_memes.append((meme_path, 2.0))  # Default 2 seconds
-        
-        return selected_memes[:count]
-        
-    except Exception as e:
-        print(f"LLM selection failed, falling back to random: {e}")
-        selected = random.sample(candidate_memes, min(count, len(candidate_memes)))
-        return [(m, 2.0) for m in selected]  # Default 2 seconds each
+        except Exception as e:
+            _meme_key_idx += 1
+            time.sleep(2)
+            continue
+    
+    print(f"LLM selection failed, falling back to random")
+    selected = random.sample(candidate_memes, min(count, len(candidate_memes)))
+    return [(m, 2.0) for m in selected]
 
 
 def fetch_and_download_memes(keywords: List[str], count: int = 20, script: str = "",
@@ -406,45 +419,57 @@ def select_sfx_with_llm(script: str, transcript: List[dict], duration: float) ->
         sfx_list=sfx_list_str,
     )
     
-    try:
-        response = requests.post(
-            OPENROUTER_API_URL,
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": OPENROUTER_MODEL,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 200,
-            },
-            timeout=15,
-        )
-        response.raise_for_status()
-        
-        content = response.json()["choices"][0]["message"]["content"].strip()
-        print(f"LLM SFX selection:\n{content[:200]}...")
-        
-        selected_sfx = []
-        for line in content.split("\n"):
-            line = line.strip()
-            if not line or "," not in line:
+    _sfx_key_idx = getattr(select_sfx_with_llm, '_key_idx', 0)
+    for _attempt in range(len(OPENROUTER_API_KEYS)):
+        key = OPENROUTER_API_KEYS[_sfx_key_idx % len(OPENROUTER_API_KEYS)]
+        try:
+            response = requests.post(
+                OPENROUTER_API_URL,
+                headers={
+                    "Authorization": f"Bearer {key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": OPENROUTER_MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 200,
+                },
+                timeout=15,
+            )
+            if response.status_code == 429:
+                _sfx_key_idx += 1
+                time.sleep(2)
                 continue
-            
-            parts = line.split(",", 1)
-            filename = parts[0].strip()
-            try:
-                timestamp = float(parts[1].strip())
-                timestamp = max(0.0, min(duration, timestamp))
-            except (ValueError, IndexError):
-                continue
-            
-            if filename in available_sfx:
-                selected_sfx.append((filename, timestamp))
+            response.raise_for_status()
+            select_sfx_with_llm._key_idx = _sfx_key_idx + 1
         
-        print(f"Selected {len(selected_sfx)} sound effects")
-        return selected_sfx
+            content = response.json()["choices"][0]["message"]["content"].strip()
+            print(f"LLM SFX selection:\n{content[:200]}...")
+            
+            selected_sfx = []
+            for line in content.split("\n"):
+                line = line.strip()
+                if not line or "," not in line:
+                    continue
+                
+                parts = line.split(",", 1)
+                filename = parts[0].strip()
+                try:
+                    timestamp = float(parts[1].strip())
+                    timestamp = max(0.0, min(duration, timestamp))
+                except (ValueError, IndexError):
+                    continue
+                
+                if filename in available_sfx:
+                    selected_sfx.append((filename, timestamp))
+            
+            print(f"Selected {len(selected_sfx)} sound effects")
+            return selected_sfx
         
-    except Exception as e:
-        print(f"LLM SFX selection failed: {e}")
-        return []
+        except Exception as e:
+            _sfx_key_idx += 1
+            time.sleep(2)
+            continue
+    
+    print(f"LLM SFX selection failed, returning empty")
+    return []
