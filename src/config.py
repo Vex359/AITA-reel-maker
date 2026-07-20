@@ -12,7 +12,11 @@ REDDIT_TOP_URL = "https://old.reddit.com/r/AmItheAsshole/top/.json"
 REDDIT_PARAMS = {"t": "day", "limit": 10}
 REDDIT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEYS = [
+    "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",
+    "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",
+    "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",
+]
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODEL = "tencent/hy3:free"
 OPENROUTER_ABSURD_MODEL = "google/gemma-4-26b-a4b-it:free"

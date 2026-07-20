@@ -7,7 +7,7 @@ from typing import List
 
 from .config import (
     OPENROUTER_API_URL,
-    OPENROUTER_API_KEY,
+    OPENROUTER_API_KEYS,
     OPENROUTER_MODEL,
     OPENROUTER_ABSURD_MODEL,
     SCRIPT_PROMPT,
@@ -43,32 +43,56 @@ def record_topic(topic: str, script: str):
     save_topic_memory(memory)
 
 
+_key_index = 0
+
+
 def call_llm(prompt: str, model: str = None) -> str:
-    """Call OpenRouter API with a prompt."""
+    """Call OpenRouter API with key rotation on 429 rate limits."""
+    global _key_index
+    import time
+
     if model is None:
         model = OPENROUTER_MODEL
-    
-    try:
-        response = requests.post(
-            OPENROUTER_API_URL,
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-            },
-            timeout=60,
-        )
-        response.raise_for_status()
-        
-        result = response.json()
-        return result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
-        
-    except Exception as e:
-        print(f"LLM API error: {e}")
-        return ""
+
+    attempts = 0
+    while attempts < len(OPENROUTER_API_KEYS):
+        key = OPENROUTER_API_KEYS[_key_index % len(OPENROUTER_API_KEYS)]
+        try:
+            response = requests.post(
+                OPENROUTER_API_URL,
+                headers={
+                    "Authorization": f"Bearer {key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+                timeout=60,
+            )
+
+            if response.status_code == 429:
+                _key_index += 1
+                attempts += 1
+                print(f"  Key {(_key_index - 1) % len(OPENROUTER_API_KEYS) + 1} rate-limited, switching... ({attempts}/{len(OPENROUTER_API_KEYS)})")
+                time.sleep(2)
+                continue
+
+            response.raise_for_status()
+            result = response.json()
+            return result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+
+        except requests.exceptions.HTTPError:
+            _key_index += 1
+            attempts += 1
+            time.sleep(2)
+            continue
+        except Exception as e:
+            print(f"LLM API error: {e}")
+            return ""
+
+    print("  All keys rate-limited, using fallback")
+    return ""
 
 
 def generate_script(story_text: str) -> str:
