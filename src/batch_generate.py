@@ -45,7 +45,7 @@ def generate_captions(script: str, hook_text: str) -> Dict[str, str]:
     
     caption = f"{first_sentence}\n\n"
     caption += " ".join(selected_tags)
-    caption += "\n\n🔔 Follow for daily stories!"
+    caption += "\n\nFollow for daily stories!"
     
     return {
         "caption": caption,
@@ -61,9 +61,9 @@ def generate_batch(num_reels: int = BATCH_SIZE) -> List[Dict]:
     results = []
     
     for i in range(num_reels):
-        print(f"\n{'─' * 40}")
+        print(f"\n{'-' * 40}")
         print(f"  REEL {i + 1} of {num_reels}")
-        print(f"{'─' * 40}")
+        print(f"{'-' * 40}")
         
         try:
             video_path = generate_absurd_reel()
@@ -77,11 +77,11 @@ def generate_batch(num_reels: int = BATCH_SIZE) -> List[Dict]:
                 "generated_at": datetime.now().isoformat(),
             })
             
-            print(f"\n  ✓ Reel {i + 1} generated: {os.path.basename(video_path)}")
+            print(f"\n  [OK] Reel {i + 1} generated: {os.path.basename(video_path)}")
             cleanup_temp()
             
         except Exception as e:
-            print(f"\n  ✗ Reel {i + 1} failed: {e}")
+            print(f"\n  [FAIL] Reel {i + 1} failed: {e}")
             continue
     
     print(f"\n{'=' * 60}")
@@ -118,10 +118,10 @@ def schedule_to_buffer(reels: List[Dict]) -> bool:
     success_count = sum(1 for r in results if "error" not in r)
     
     if success_count == len(reels):
-        print(f"\n  ✓ All {len(reels)} reels scheduled successfully!")
+        print(f"\n  [OK] All {len(reels)} reels scheduled successfully!")
         return True
     else:
-        print(f"\n  ⚠ Only {success_count}/{len(reels)} reels scheduled")
+        print(f"\n  [WARN] Only {success_count}/{len(reels)} reels scheduled")
         return False
 
 
@@ -157,9 +157,9 @@ def cleanup_reels(reels: List[Dict]):
 def run_full_cycle():
     start_time = datetime.now()
     
-    print("\n" + "🎮" * 30)
+    print("\n" + "=" * 30)
     print("  MINECRAFT REEL AUTOMATION - FULL CYCLE")
-    print("🎮" * 30)
+    print("=" * 30)
     print(f"\n  Started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     
     print("\n[STEP 1/4] Generating reels...")
@@ -179,7 +179,7 @@ def run_full_cycle():
     if schedule_success:
         cleanup_reels(reels)
     else:
-        print("  Skipped — some reels failed to schedule, keeping files")
+        print("  Skipped - some reels failed to schedule, keeping files")
     
     print("\n[STEP 4/4] Sending notifications...")
     send_reel_ready_notification(
@@ -188,7 +188,7 @@ def run_full_cycle():
     )
     
     reminder_date = datetime.now() + timedelta(days=5)
-    print(f"\n  📱 Reminder: run this BAT file again on {reminder_date.strftime('%Y-%m-%d')}")
+    print(f"\n  Reminder: run this BAT file again on {reminder_date.strftime('%Y-%m-%d')}")
     
     duration = datetime.now() - start_time
     minutes = duration.total_seconds() / 60
@@ -197,8 +197,8 @@ def run_full_cycle():
     print(f"  CYCLE COMPLETE!")
     print(f"  Duration: {minutes:.1f} minutes")
     print(f"  Reels generated: {len(reels)}")
-    print(f"  Scheduled to Buffer: {'✓' if schedule_success else '✗'}")
-    print(f"  Local files deleted: {'✓' if schedule_success else '✗'}")
+    print(f"  Scheduled to Buffer: {'YES' if schedule_success else 'NO'}")
+    print(f"  Local files deleted: {'YES' if schedule_success else 'NO'}")
     print(f"  Next run: {reminder_date.strftime('%Y-%m-%d')}")
     print("=" * 60)
     

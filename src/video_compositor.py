@@ -213,7 +213,8 @@ def compose_reel(
         safe_title = safe_title[:50]
         if not safe_title:
             safe_title = "reel"
-        final_output = os.path.join(OUTPUT_DIR, f"{safe_title}.mp4")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        final_output = os.path.join(OUTPUT_DIR, f"{safe_title}_{timestamp}.mp4")
     else:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         final_output = os.path.join(OUTPUT_DIR, f"reel_{timestamp}.mp4")

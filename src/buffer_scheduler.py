@@ -22,7 +22,10 @@ def graphql_query(query: str, variables: dict = None) -> dict:
         payload["variables"] = variables
     
     response = requests.post(BUFFER_API_BASE, json=payload, headers=headers)
-    response.raise_for_status()
+    
+    if response.status_code != 200:
+        return {"errors": [{"message": f"HTTP {response.status_code}: {response.text}"}]}
+    
     return response.json()
 
 
